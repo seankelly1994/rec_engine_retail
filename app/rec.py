@@ -1,59 +1,59 @@
-# Import the standard packages normally utilize by Data Scientist
+import tensorflow as tf
 import numpy as np
 import pandas as pd
-import pickle
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-from sklearn.cluster import KMeans
-from sklearn import preprocessing
-from collections import Counter
-import scipy.sparse as sparse
-
-# os is a handy module to explore operating system directory
+from tensorflow import keras
+from tensorflow.keras import layers
 import os
 
-# import keras as the Tensorflow engine uses Keras Neural Net backend
-import keras as ks
-
-# Import Tensorrec recommendation packages
-import tensorrec
-from tensorrec import TensorRec
-from tensorrec.eval import *
-from tensorrec.util import append_to_string_at_point
-
-# Graphs
-from tensorrec.representation_graphs import (AbstractKerasRepresentationGraph, 
-#                                              ReLURepresentationGraph, 
-                                             NormalizedLinearRepresentationGraph, 
-#                                              LinearRepresentationGraph
-                                            )
-
-from tensorrec.loss_graphs import (WMRBLossGraph, 
-#                                    BalancedWMRBLossGraph,
-#                                    RMSELossGraph, 
-#                                    RMSEDenseLossGraph, 
-#                                    SeparationDenseLossGraph
-                                  ) 
-
-from tensorrec.eval import fit_and_eval, eval_random_ranks_on_dataset
-from tensorrec.util import append_to_string_at_point
-
-class DeepRepresentationGraph(AbstractKerasRepresentationGraph):
-
-    # This method returns an ordered list of Keras layers connecting the user/item features to the user/item
-    # representation. When TensorRec learns, the learning will happen in these layers.
-    def create_layers(self, n_features, n_components):
-        return [
-            ks.layers.Dense(n_components * 16, activation='relu'), # Rectified linear unit
-            ks.layers.Dense(n_components * 8, activation='relu'), 
-            ks.layers.Dense(n_components * 2, activation='relu'), 
-            ks.layers.Dense(n_components, activation='tanh'),
-        ]
-
 class RetailRec():
+    # Pass dataframe as parameter and convert to dataset object
+    def dataframe_to_dataset(self, df):
+        df = df.copy()
+
+        labels = df.pop("NEWDEPTSUBGROUP")
+        ds = tf.data.Dataset.from_tensor_slices((dict(df), labels))
+        ds = ds.shuffle(buffer_size=len(df))
+
+        return ds
+
     def train(self):
+        # Read csv data file and create pandas dataframe
+        os.chdir('../data')
+
+        df = pd.read_csv('transactions.csv')
+        df.columns = map(lambda x: str(x).upper(), df.columns)
+        df = df.drop(columns=['TRANSACTIONDATE'])
+        df['ACTSALEVALUE'] = df['ACTSALEVALUE'].astype(int)
+        print(df.shape)
+        print(df.head())
+
+        val_dataframe = df.sample(frac=0.2, random_state=1337)
+        train_dataframe = df.drop(val_dataframe.index)
+        print("Using %d samples for training and %d samples for validation" %(len(train_dataframe), len(val_dataframe)))
+
+        # Convert the validation and training dataframes into datasets
+        train_ds = self.dataframe_to_dataset(train_dataframe)
+        val_ds = self.dataframe_to_dataset(val_dataframe)
+
+        # Batch the datasets
+        # train_ds = train_ds.batch(32)
+        # val_ds = val_ds.batch(32)
+
+        # CUSTOMERID,GenderDesc,MarketSectorDesc,AGE,AGEBAND,NEWDEPARTMENTDESC,NEWDEPTGROUP,NEWDEPTSUBGROUP,ACTSALEVALUE,TRANSACTIONDATE
+        # The following features are categorical features encoded as integers
+        # GenderDesc
+
+
+        # The following features are continous numerical features
+        # Age, ActSaleValue
 
 
         return "Done", 204
+
+def main():
+    rr = RetailRec()
+    rr.train()
+
+# Call
+if __name__ == "__main__":
+    main()
